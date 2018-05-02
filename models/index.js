@@ -1,0 +1,1 @@
+exports.Expense = require('./expense')();
