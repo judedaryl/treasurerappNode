@@ -26,6 +26,7 @@ module.exports = () => {
     }
     Promise.all(promises).then((result) => {
         for (x = 0; x < 50; x ++ ) {
+          conso
           result[0].forEach(wew => {
             tEntity.push(wew);
           })
