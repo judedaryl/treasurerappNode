@@ -47,7 +47,8 @@ module.exports = () => {
 
   router.post('/get/except', function (req, res, next) {
     Expense.find({
-      ExpenseID: {$nin: JSON.parse(req.body.ExpenseIDs)}
+      DateCreated: {$nin: JSON.parse(req.body.DatesCreated)}, 
+      CreatedBy: parseInt(req.body.CreatedBy)
     }, (err, doc) => {
       if (err) {
         res.status(400).send(err)
