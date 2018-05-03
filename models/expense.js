@@ -5,7 +5,7 @@ var schema = mongoose.Schema;
 module.exports = () => {
     var Expense = new schema({
         ExpenseID: {
-            unique: true,
+            unique: false,
             type: Number,
             require: true
         },
@@ -23,6 +23,11 @@ module.exports = () => {
             unique: false,
             type: String,
             required: true
+        },
+        Active: {
+            unique: false,
+            type: Boolean,
+            required: false,
         },
         CreatedBy: {
             unique: false,
@@ -67,6 +72,11 @@ module.exports = () => {
                 })
             }
         });
+    }
+
+    Expense.statics.CreateMany = function(object, callback) {
+        var model = mongoose.model("expenses", Expense);
+        
     }
 
     return mongoose.model("Expense", Expense);
