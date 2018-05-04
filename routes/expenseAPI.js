@@ -1,40 +1,12 @@
 var express = require("express");
 var router = express.Router();
-
+var ObjectID = require('mongodb').ObjectID;
 var models = require("../models");
 var Expense = models.Expense;
 
-var server = [
-  {
-    _id: "5aea95d5fa9ac803bad12003",
-    ExpenseType: 0,
-    ExpenseValue: 180,
-    ExpenseDescription: "Daryl Expenses",
-    CreatedBy: 0,
-    DateCreated: "2018-05-01T07:37:20.473Z",
-    DateModified: "2018-05-01T07:37:20.473Z",
-    Active: true,
-    __v: 0
-  },
-  {
-    _id: "5aea95d5fa9ac803bad12004",
-    ExpenseType: 0,
-    ExpenseValue: 5500,
-    ExpenseDescription: "Bhouse",
-    CreatedBy: 0,
-    DateCreated: "2018-05-01T07:37:39.493Z",
-    DateModified: "2018-05-01T07:37:39.493Z",
-    Active: true,
-    __v: 0
-  }
-];
-
-function check(doc) {
-  return server.some(e => e.DateCreated == doc.DateCreated);
-}
 module.exports = () => {
   /* GET users listing. */
-  router.post("/create", function(req, res, next) {
+  router.post("/create", function (req, res, next) {
     Expense.Create(req.body, (err, doc) => {
       if (err) {
         res.status(400).send(err);
@@ -46,16 +18,12 @@ module.exports = () => {
     });
   });
 
-  router.post("/create/many", function(req, res, next) {
-    var docu = req.body;
-    // docu.forEach(e => {
-    //   (e.DateCreated = new Date(parseInt(e.DateCreated, 10))),
-    //     (e.DateModified = new Date(parseInt(e.DateModified, 10)));
-    // });
-
-    Expense.find({}, (err, serverDocs) => {
+  router.post("/sync", function (req, res, next) {
+    var creator = 0;
+    var docu = req.body.Data;
+    Expense.find({CreatedBy: creator}, (err, serverDocs) => {
       serverDox = [];
-      serverDocs.forEach( e => {
+      serverDocs.forEach(e => {
         serverDox.push({
           DateCreated: e.DateCreated.getTime().toString()
         });
@@ -66,17 +34,67 @@ module.exports = () => {
       }
 
       documentsToAdd = docu.filter(d => !checkExist(d));
+      documentsToUpdate = docu.filter(d => checkExist(d));
 
+      // CREATE PROMISE = (0), UPDATE PROMISE = (1,2,3....)
+      var CreateOrUpdatePromises = [];
+      // CREATE PROMISE
+      var CreatePromise = new Promise((resolve, reject) => {
+        Expense.insertMany(documentsToAdd, (c_err, c_doc) => {
+          if (err) reject(c_err);
+          else resolve(c_doc);
+        });
+      });
 
-      Expense.insertMany(documentsToAdd, (errs, doc) => {
-        if(errs) res.status(400).send({err :errs});
-        else {
-          Expense.find({}, (err, everydoc) => {
-            if(err) res.status(400).send({err :err});
+      // PUSH CREATE PROMISE TO PROMISES ARRAY
+      CreateOrUpdatePromises.push(CreatePromise);
+
+      // UPDATE PROMISES
+      documentsToUpdate.forEach(e => {
+
+        var UpdatePromise = new Promise((resolve, reject) => {
+          var objid = new ObjectID(e.ExpenseServerID);
+
+          Expense.find({ _id: objid, CreatedBy: creator}, (err_, toUpdateDoc) => {
+            if(!toUpdateDoc.Active) toSetActive = false;
+            else toSetActive = e.Active;
+            if(err_) reject(err_)
+            else {
+              Expense.findOneAndUpdate({
+                _id: objid, CreatedBy: creator
+              }, {
+                $set: {
+                  ExpenseValue: e.ExpenseValue,
+                  ExpenseType: e.ExpenseType,
+                  ExpenseDescription: e.ExpenseDescription,
+                  Active: e.Active,
+                  CreatedBy: e.CreatedBy,
+                  DateCreated: e.DateCreated,
+                  DateModified: e.DateModified
+                }
+              }, {
+                new: true
+              },
+              (err, doc) => {
+                if (err) reject(err);
+                else resolve(doc);
+              });
+            }
+          });
+        });
+        CreateOrUpdatePromises.push(UpdatePromise);
+      });
+
+      Promise.all(CreateOrUpdatePromises).then(
+        resolve => {
+          // WHEN PROMISES ARE OK RETRIEVE LATEST DATA AND RETURN ALL
+          Expense.find({CreatedBy: creator}, (err, everydoc) => {
+            if (err) res.status(400).send({
+              err: err
+            });
             var everydocs_ = [];
             everydoc.forEach(e => {
               var data_ = {
-                // ExpenseID: e.ExpenseID,
                 ExpenseServerID: e._id,
                 ExpenseType: e.ExpenseType,
                 ExpenseValue: e.ExpenseValue,
@@ -88,36 +106,20 @@ module.exports = () => {
               };
               everydocs_.push(data_);
             });
-  
             res.status(200).send({
               Data: everydocs_
             });
           })
+        },
+        reject => {
+          console.log(reject);
         }
-  
-      });
-
-    });
-
-
- 
-
-    // Expense.insertMany()
-  });
-
-  router.put("/update", function(req, res, next) {
-    Expense.u(req.body, (err, doc) => {
-      if (err) {
-        res.status(400).send(err);
-      } else {
-        res.send({
-          ExpenseServerID: doc._id
-        });
-      }
+      )
     });
   });
 
-  router.get("/superUpdate", function(req, res, next) {
+
+  router.get("/superUpdate", function (req, res, next) {
     var promises = [];
     Expense.find({}, (err, doc) => {
       console.log(doc);
@@ -132,7 +134,7 @@ module.exports = () => {
     });
   });
 
-  router.get("/get/all", function(req, res, next) {
+  router.get("/get/all", function (req, res, next) {
     Expense.find({}, (err, doc) => {
       if (err) {
         res.status(400).send(err);
@@ -145,6 +147,7 @@ module.exports = () => {
             ExpenseType: e.ExpenseType,
             ExpenseValue: e.ExpenseValue,
             ExpenseDescription: e.ExpenseDescription,
+            Active: e.Active,
             CreatedBy: e.CreatedBy,
             DateCreated: e.DateCreated.getTime(),
             DateModified: e.DateModified.getTime()
@@ -159,10 +162,24 @@ module.exports = () => {
     });
   });
 
-  router.post("/get/except", function(req, res, next) {
-    Expense.find(
-      {
-        DateCreated: { $nin: JSON.parse(req.body.DatesCreated) },
+  router.get("/get/all/raw", function (req, res, next) {
+    Expense.find({}, (err, doc) => {
+      if (err) {
+        res.status(400).send(err);
+      } else {
+        var datas = doc
+        res.send({
+          Data: datas
+        });
+      }
+    });
+  });
+
+  router.post("/get/except", function (req, res, next) {
+    Expense.find({
+        DateCreated: {
+          $nin: JSON.parse(req.body.DatesCreated)
+        },
         CreatedBy: parseInt(req.body.CreatedBy)
       },
       (err, doc) => {
@@ -207,15 +224,12 @@ function UpdateDis(docx) {
   // Return new promise
   return new Promise((resolve, reject) => {
     // Do async job
-    Expense.update(
-      {
+    Expense.update({
         DateCreated: docx.DateCreated,
         DateModified: docx.DateModified
-      },
-      {
+      }, {
         Active: true
-      },
-      {
+      }, {
         new: true,
         multi: true
       },
