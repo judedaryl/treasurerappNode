@@ -18,6 +18,11 @@ module.exports = () => {
     });
   });
 
+  router.post('/convert', function(req, res, next) {
+    console.log(req.body);
+    res.send(req.body);
+  });
+
   router.post("/sync", function (req, res, next) {
     var creator = 0;
     var docu = req.body.Data;
@@ -61,7 +66,7 @@ module.exports = () => {
             if(err_) reject(err_)
             else {
               Expense.findOneAndUpdate({
-                _id: objid, CreatedBy: creator
+                _id: objid, CreatedBy: 0
               }, {
                 $set: {
                   ExpenseValue: e.ExpenseValue,
@@ -76,6 +81,7 @@ module.exports = () => {
                 new: true
               },
               (err, doc) => {
+                console.log(doc)
                 if (err) reject(err);
                 else resolve(doc);
               });
@@ -107,7 +113,7 @@ module.exports = () => {
               everydocs_.push(data_);
             });
             res.status(200).send({
-              Data: everydocs_
+              Data: resolve
             });
           })
         },
@@ -117,6 +123,22 @@ module.exports = () => {
       )
     });
   });
+
+  router.post('/temp', (req,res) => {
+    e=req.body.Data;
+    Expense.findOneAndUpdate({DateCreated: e.DateCreated},
+      {$set: {
+        ExpenseValue: e.ExpenseValue,
+        ExpenseType: e.ExpenseType,
+        ExpenseDescription: e.ExpenseDescription,
+        Active: e.Active,
+        CreatedBy: e.CreatedBy,
+        DateCreated: e.DateCreated,
+        DateModified: e.DateModified
+      }}, (err, doc) => {
+        res.send(doc);
+      })}
+  );
 
 
   router.get("/superUpdate", function (req, res, next) {
