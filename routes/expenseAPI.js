@@ -113,7 +113,7 @@ module.exports = () => {
               everydocs_.push(data_);
             });
             res.status(200).send({
-              Data: resolve
+              Data: everydocs_
             });
           })
         },
