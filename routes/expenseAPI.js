@@ -6,6 +6,10 @@ var Expense = models.Expense;
 
 module.exports = () => {
   /* GET users listing. */
+
+  router.get('/ping', (req,res,next)=> {
+    res.send('poing');
+  });
   router.post("/create", function (req, res, next) {
     Expense.Create(req.body, (err, doc) => {
       if (err) {
@@ -24,6 +28,7 @@ module.exports = () => {
   });
 
   router.post("/sync", function (req, res, next) {
+    
     var creator = 0;
     var docu = req.body.Data;
     Expense.find({CreatedBy: creator}, (err, serverDocs) => {
@@ -37,10 +42,9 @@ module.exports = () => {
       function checkExist(dx) {
         return serverDox.some(el => el.DateCreated == dx.DateCreated);
       }
-
       documentsToAdd = docu.filter(d => !checkExist(d));
       documentsToUpdate = docu.filter(d => checkExist(d));
-
+      documentsToUpdate = docu.filter(d => d.Updated == false);
       // CREATE PROMISE = (0), UPDATE PROMISE = (1,2,3....)
       var CreateOrUpdatePromises = [];
       // CREATE PROMISE
@@ -56,10 +60,10 @@ module.exports = () => {
 
       // UPDATE PROMISES
       documentsToUpdate.forEach(e => {
-
-        var UpdatePromise = new Promise((resolve, reject) => {
+        var UpdatePromise = new Promise((resolve, reject) => {     
           var objid = new ObjectID(e.ExpenseServerID);
 
+         
           Expense.find({ _id: objid, CreatedBy: creator}, (err_, toUpdateDoc) => {
             if(!toUpdateDoc.Active) toSetActive = false;
             else toSetActive = e.Active;
@@ -81,7 +85,6 @@ module.exports = () => {
                 new: true
               },
               (err, doc) => {
-                console.log(doc)
                 if (err) reject(err);
                 else resolve(doc);
               });
@@ -118,7 +121,6 @@ module.exports = () => {
           })
         },
         reject => {
-          console.log(reject);
         }
       )
     });
