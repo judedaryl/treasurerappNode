@@ -124,7 +124,7 @@ module.exports = () => {
     });
   });
 
-  router.post('/temp', (req,res) => {
+  router.post('/temps', (req,res) => {
     e=req.body.Data;
     Expense.findOneAndUpdate({DateCreated: e.DateCreated},
       {$set: {
