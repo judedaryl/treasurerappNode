@@ -58,13 +58,10 @@ module.exports = () => {
 
       // PUSH CREATE PROMISE TO PROMISES ARRAY
       CreateOrUpdatePromises.push(CreatePromise);
-
       // UPDATE PROMISES
       documentsToUpdate.forEach(e => {
         var UpdatePromise = new Promise((resolve, reject) => {     
           var objid = new ObjectID(e.ExpenseServerID);
-
-         
           Expense.find({ _id: objid, CreatedBy: creator}, (err_, toUpdateDoc) => {
             if(!toUpdateDoc.Active) toSetActive = false;
             else toSetActive = e.Active;

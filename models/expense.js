@@ -24,6 +24,16 @@ module.exports = () => {
             type: String,
             required: true
         },
+        ExpenseCategory: {
+            unique: false,
+            type: String,
+            required: false,
+        },
+        ExpenseTags: {
+            unique: false,
+            type: String,
+            required: false,
+        },
         Active: {
             unique: false,
             type: Boolean,
