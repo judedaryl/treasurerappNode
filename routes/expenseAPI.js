@@ -45,6 +45,7 @@ module.exports = () => {
       documentsToAdd = docu.filter(d => !checkExist(d));
       documentsToUpdate = docu.filter(d => checkExist(d));
       documentsToUpdate = docu.filter(d => d.Updated == false);
+
       // CREATE PROMISE = (0), UPDATE PROMISE = (1,2,3....)
       var CreateOrUpdatePromises = [];
       // CREATE PROMISE
